@@ -31,7 +31,7 @@ static void help(bool iserror) {
   // output << "usage: nethogs [-V] [-b] [-d seconds] [-t] [-p] [-f (eth|ppp))]
   // [device [device [device ...]]]\n";
   output << "usage: nethogs [-V] [-h] [-x] [-d seconds] [-v mode] [-c count] "
-            "[-t] [-p] [-s] [-a] [-l] [-f filter] [-C] [-b] [-P pid] "
+            "[-t] [-p] [-s] [-a] [-l] [-f filter] [-C] [-b] [-P pid] [-o filepath] "
             "[device [device [device ...]]]\n";
   output << "		-V : prints version.\n";
   output << "		-h : prints this help.\n";
@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
   int garbage_collection_period = 50;
 
   int opt;
-  while ((opt = getopt(argc, argv, "Vhxtpsd:v:c:laf:Cbg:P:")) != -1) {
+  while ((opt = getopt(argc, argv, "Vhxtpsd:v:c:laf:Cbg:P:o:")) != -1) {
     switch (opt) {
     case 'V':
       versiondisplay();
@@ -203,6 +203,15 @@ int main(int argc, char **argv) {
       break;
     case 'P':
       pidsToWatch.insert((pid_t)atoi(optarg));
+      break;
+    case 'o':
+      file_logging = true;
+      output_file = optarg;
+      // force viewmode to be total
+      if (viewMode != VIEWMODE_TOTAL_KB \
+		      && viewMode != VIEWMODE_TOTAL_B \
+		      && viewMode != VIEWMODE_TOTAL_MB)
+      viewMode=VIEWMODE_TOTAL_KB;
       break;
     default:
       help(true);
@@ -300,7 +309,7 @@ int main(int argc, char **argv) {
 
   struct dpargs *userdata = (dpargs *)malloc(sizeof(struct dpargs));
 
-  if ((!tracemode) && (!DEBUG)) {
+  if ((!tracemode) && (!DEBUG) && (!file_logging)) {
     init_ui();
   }
 

@@ -33,6 +33,10 @@
 #include "process.h"
 #include <ncurses.h>
 
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+
 std::string *caption;
 static int cursOrig;
 extern const char version[];
@@ -51,6 +55,8 @@ extern bool showBasename;
 
 extern unsigned refreshlimit;
 extern unsigned refreshcount;
+
+extern char *output_file;
 
 #define PID_MAX 4194303
 
@@ -90,6 +96,7 @@ public:
 
   void show(int row, unsigned int proglen, unsigned int devlen);
   void log();
+  void save_to_file();
 
   double sent_value;
   double recv_value;
@@ -230,6 +237,26 @@ void Line::log() {
     std::cout << ' ' << m_cmdline;
   std::cout << '/' << m_pid << '/' << m_uid << "\t" << sent_value << "\t"
             << recv_value << std::endl;
+}
+
+void Line::save_to_file() {
+
+  std::ofstream save_file;
+
+  save_file.open (output_file, std::ios::app);
+  // float number formatting : fixed / two decimals
+  save_file << std::fixed << std::setprecision(2) << m_name << "\t";
+
+  // this is to avoid breaking csv formatting
+  if (!m_cmdline)
+	  m_cmdline = "";
+
+  if (showcommandline)
+    save_file << m_cmdline << "\t";
+
+  save_file << '/' << m_pid << '/' << m_uid << "\t" << sent_value << "\t"
+            << recv_value << std::endl;
+  save_file.close();
 }
 
 int get_devlen(Line *lines[], int nproc, int rows) {
@@ -392,8 +419,32 @@ void show_ncurses(Line *lines[], int nproc) {
   mvprintw(3 + 1 + i, cols - COLUMN_WIDTH_UNIT, "%s", desc_view_mode[viewMode]);
   attroff(A_REVERSE);
   mvprintw(totalrow + 1, 0, "%s", "");
+
   refresh();
 }
+
+void file_write(Line *lines[], int nproc) {
+
+  /* create backup filename */
+  std::string output_file_bu;
+  std::string bu_suffix = ".bu";
+  output_file_bu = output_file + bu_suffix;
+
+  /* make backup before copying */
+  std::ifstream  src(output_file, std::ios::binary);
+  std::ofstream  dst(output_file_bu, std::ios::binary);
+  dst << src.rdbuf();
+  std::remove(output_file);
+
+  /* save them */
+  for (int i = 0; i < nproc; i++) {
+    //lines[i]->log();
+    lines[i]->save_to_file();
+    delete lines[i];
+  }
+}
+
+
 
 // Display all processes and relevant network traffic using show function
 void do_refresh() {
@@ -457,6 +508,9 @@ void do_refresh() {
     show_trace(lines, nproc);
   else
     show_ncurses(lines, nproc);
+
+  if(file_logging)
+    file_write(lines, nproc);
 
   if (refreshlimit != 0 && refreshcount >= refreshlimit)
     quit_cb(0);

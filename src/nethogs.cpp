@@ -55,6 +55,8 @@ time_t refreshdelay = 1;
 unsigned refreshlimit = 0;
 unsigned refreshcount = 0;
 unsigned processlimit = 0;
+char *output_file = NULL;
+bool file_logging = false;
 bool tracemode = false;
 bool bughuntmode = false;
 // sort on sent or received?

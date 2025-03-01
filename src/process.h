@@ -30,6 +30,7 @@
 
 extern bool tracemode;
 extern bool bughuntmode;
+extern bool file_logging;
 
 void check_all_procs();
 
